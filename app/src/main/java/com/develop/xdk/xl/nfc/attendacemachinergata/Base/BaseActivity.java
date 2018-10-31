@@ -26,21 +26,19 @@ import butterknife.ButterKnife;
 public abstract class BaseActivity extends AppCompatActivity {
     protected ToastUntil toastUntil;
     protected volatile getNfcCardID getcardId;
-    protected volatile SQLControl sqlControl;
     protected volatile String NfcCardID;
 
     protected volatile int attend_mode;
     protected volatile String TAG = this.getClass().getSimpleName();
-    protected volatile int in_out_mode ;
+    protected volatile int in_out_mode;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         toastUntil = new ToastUntil(this);
         getcardId = new getNfcCardID(this);
-        sqlControl = new SQLControl(this);
         attend_mode = (int) SharedPreferencesUtils.getParam(this, C.ATTENDANCE_MODE_NAME, C.SCHOOL_GATA_MODE);
-        in_out_mode = (int) SharedPreferencesUtils.getParam(this,C.IN_OUT_MODE_NAME,C.IN_MODE);
+        in_out_mode = (int) SharedPreferencesUtils.getParam(this, C.IN_OUT_MODE_NAME, C.IN_MODE);
         Log.d(TAG, "onCreate: attend_mode" + attend_mode);
 //        Log.e("Base", "onCreate: "+App.getInstance().getIS_FIRST());
         overridePendingTransition(R.anim.ac_slide_right_in, R.anim.ac_slide_left_out);
@@ -50,7 +48,6 @@ public abstract class BaseActivity extends AppCompatActivity {
         App.getInstance().addActivity(this);
 
     }
-
 
 
     @Override
@@ -91,6 +88,7 @@ public abstract class BaseActivity extends AppCompatActivity {
             toastUntil.stopToast();
             Log.i(TAG, "onDestroy: stopToast");
         }
+//       SQLControl.getINSTANCE(this).closeDataBase();
     }
 
     @Override

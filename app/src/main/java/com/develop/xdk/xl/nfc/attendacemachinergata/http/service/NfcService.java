@@ -1,6 +1,7 @@
 package com.develop.xdk.xl.nfc.attendacemachinergata.http.service;
 
 
+import com.develop.xdk.xl.nfc.attendacemachinergata.entity.AccountidParam;
 import com.develop.xdk.xl.nfc.attendacemachinergata.entity.BaseParam;
 import com.develop.xdk.xl.nfc.attendacemachinergata.entity.CheckRecodParam;
 import com.develop.xdk.xl.nfc.attendacemachinergata.entity.ComsumeParam;
@@ -30,4 +31,7 @@ public interface NfcService {
     @POST("/user/checkRecode")
     Observable<HttpResult<PersonDossier>> updataAttends(@Body CheckRecodParam param);
 
+    //获取用户头像接口
+    @POST("user/head/portrait")
+    Observable<HttpResult<String>> getHeadImage(@Body AccountidParam param);
 }

@@ -6,9 +6,13 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
 
+import com.develop.xdk.xl.nfc.attendacemachinergata.R;
 import com.develop.xdk.xl.nfc.attendacemachinergata.SqLite.BaseSQL.BaseDB;
 import com.develop.xdk.xl.nfc.attendacemachinergata.SqLite.BaseSQL.TableColumns;
 import com.develop.xdk.xl.nfc.attendacemachinergata.SqLite.SqlCallBack;
+import com.develop.xdk.xl.nfc.attendacemachinergata.constant.C;
+import com.develop.xdk.xl.nfc.attendacemachinergata.entity.Dialog.Loading.timeOutListner;
+import com.develop.xdk.xl.nfc.attendacemachinergata.entity.Dialog.LoadingDialog;
 import com.develop.xdk.xl.nfc.attendacemachinergata.entity.LocalBaseUser;
 
 import java.util.ArrayList;
@@ -20,9 +24,11 @@ public class BaseUserStudent extends BaseDB implements TableColumns.USER_STUDENT
     private Context mcontext;
     private SQLiteDatabase db;
 
+
     protected BaseUserStudent(Context context) {
         super(context);
         mcontext = context;
+
     }
 
     public static BaseUserStudent getInstance(Context context) {
@@ -49,9 +55,6 @@ public class BaseUserStudent extends BaseDB implements TableColumns.USER_STUDENT
             callBack.onError("插入用户表失败，请重试");
         } else {
             callBack.onRespose("success");
-        }
-        if (db != null || db.isOpen()) {
-            closeDatabase();
         }
         cv.clear();
     }
@@ -101,10 +104,6 @@ public class BaseUserStudent extends BaseDB implements TableColumns.USER_STUDENT
             callBack.onError(e.getMessage());
             return;
         } finally {
-            if (db.isOpen() || db != null) {
-                closeDatabase();
-                Log.d("dddd", "selectUser:db ============================ ");
-            }
             if (cursor != null ) {
                 cursor.close();
                 Log.d("dddd", "selectUser:cursor ============================ ");
@@ -132,9 +131,6 @@ public class BaseUserStudent extends BaseDB implements TableColumns.USER_STUDENT
             Log.e(TAG, "updataUser: " + e.getMessage());
             return;
         } finally {
-            if (db != null || !db.isOpen()) {
-                closeDatabase();
-            }
             if (!cv.toString().isEmpty()) {
                 cv.clear();
             }
@@ -160,8 +156,12 @@ public class BaseUserStudent extends BaseDB implements TableColumns.USER_STUDENT
         } catch (Exception e) {
             callBack.onError("删除信息失败，请稍后重试");
             Log.e(TAG, "clearUser: " + e.getMessage());
-        } finally {
-            if (db != null || !db.isOpen()) {
+        }
+    }
+
+    public void closeDb(){
+        if (db!=null){
+            if (!db.isOpen()){
                 closeDatabase();
             }
         }

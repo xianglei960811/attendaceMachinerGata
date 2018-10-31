@@ -16,10 +16,12 @@ import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.TextView;
 
+import com.develop.xdk.xl.nfc.attendacemachinergata.Application.App;
 import com.develop.xdk.xl.nfc.attendacemachinergata.Base.BaseActivity;
 import com.develop.xdk.xl.nfc.attendacemachinergata.MainActivity;
 import com.develop.xdk.xl.nfc.attendacemachinergata.MyService.myService;
 import com.develop.xdk.xl.nfc.attendacemachinergata.R;
+import com.develop.xdk.xl.nfc.attendacemachinergata.SqLite.SQLControl;
 import com.develop.xdk.xl.nfc.attendacemachinergata.SqLite.SqlCallBack;
 import com.develop.xdk.xl.nfc.attendacemachinergata.constant.C;
 import com.develop.xdk.xl.nfc.attendacemachinergata.entity.BaseAttendRecord;
@@ -27,6 +29,8 @@ import com.develop.xdk.xl.nfc.attendacemachinergata.entity.Dialog.DownLoadingDia
 import com.develop.xdk.xl.nfc.attendacemachinergata.entity.Dialog.LoadingDialog;
 import com.develop.xdk.xl.nfc.attendacemachinergata.entity.Dialog.Loading.timeOutListner;
 import com.develop.xdk.xl.nfc.attendacemachinergata.entity.Dialog.OperableDialog;
+import com.develop.xdk.xl.nfc.attendacemachinergata.entity.GlideApp.Glideclear;
+import com.develop.xdk.xl.nfc.attendacemachinergata.entity.Image_byte.GlideApp;
 import com.develop.xdk.xl.nfc.attendacemachinergata.entity.Image_byte.Img_byte;
 import com.develop.xdk.xl.nfc.attendacemachinergata.entity.LocalBaseUser;
 import com.develop.xdk.xl.nfc.attendacemachinergata.entity.PersonDossier;
@@ -153,7 +157,7 @@ public class AttendanceRecordActivity extends BaseActivity {
      */
     private synchronized void getData() {
         loadingDialog.show();
-        sqlControl.selectAllAttendances(callBack);
+        SQLControl.getINSTANCE().selectAllAttendances(AttendanceRecordActivity.this, callBack);
         if (attends == null || attends.isEmpty()) {
             toastUntil.ShowToastShort("没有考勤记录");
             loadingDialog.dismiss();
@@ -224,33 +228,15 @@ public class AttendanceRecordActivity extends BaseActivity {
 
     @OnClick(R.id.attendance_record_back)
     public void onBackClick() {
-//        toActivityWithFinish(MainActivity.class);
-
-        LocalBaseUser student = new LocalBaseUser();
-        student.setU_Name("小向");
-        student.setU_CardID("D57C8F6C");
-        student.setU_HeadImage(Img_byte.imageTobyte(this, R.drawable.aaaaa));
-        student.setU_Class("2015级4班");
-        student.setU_Phone("17828896780");
-        student.setU_Status("学生");
-        student.setU_Sex("男");
-        sqlControl.insertStudentInfo(student, new SqlCallBack() {
-            @Override
-            public void onRespose(Object obj) {
-                toastUntil.ShowToastShort("插入信息成功");
-            }
-
-            @Override
-            public void onError(String msg) {
-                toastUntil.ShowToastShort(msg);
-            }
-        });
+        toActivityWithFinish(MainActivity.class);
     }
 
     @OnClick(R.id.atten_record_see)
     public void onSeeClick() {
         Intent intent = new Intent();
-        intent.putExtra("totalNumb", attends.size());
+        Bundle b = new Bundle();
+        b.putInt("totalNumb", attends.size());
+        intent.putExtras(b);
         intent.setClass(this, AttendsListActivity.class);
         startActivity(intent);
     }
@@ -270,10 +256,23 @@ public class AttendanceRecordActivity extends BaseActivity {
             isShowing1 = true;
             return;
         }
-
-        myservice.updataAteends(attends);
-        isShowing1 = true;
+        List<BaseAttendRecord> records = new ArrayList<>();
+        for (BaseAttendRecord record : attends
+                ) {
+            if (record.getA_isHandle() == C.IS_NO_HANDLE) {
+                records.add(record);
+            }
+        }
+        if (records.size() == 0 || records.isEmpty() || records == null) {
+            toastUntil.ShowToastShort("没有记录需要上传");
+            return;
+        }
+        myservice.updataAteends(records);
         isLoading1 = true;
+        isShowing1 = true;
+        if (isLoading && isShowing && !downLoadingDialog.isShowing()) {
+            downLoadingDialog.show();
+        }
     }
 
     @OnClick(R.id.atten_record_down)
@@ -300,22 +299,23 @@ public class AttendanceRecordActivity extends BaseActivity {
         operableDialog.setClickListenerInterface(new OperableDialog.clickListenerInterface() {
             @Override
             public void onEnsure() {
-//                sqlControl.deletUser(new SqlCallBack<String>() {
-//                    @Override
-//                    public void onRespose(String msg) {
-//                        toastUntil.ShowToastShort("档案已清除，即将下载......");
-//                        myservice.startDown();
-//                        isLoading = true;
-//                    }
-//
-//                    @Override
-//                    public void onError(String msg) {
-//                        toastUntil.ShowToastShort(msg);
-//                    }
-//                });
-                myservice.startDown();
-                isLoading = true;
-                isShowing = true;
+                SQLControl.getINSTANCE().deletUser(AttendanceRecordActivity.this, new SqlCallBack<String>() {
+                    @Override
+                    public void onRespose(String msg) {
+                        toastUntil.ShowToastShort("档案已清除，即将下载......");
+                        myservice.startDown();
+                        isLoading = true;
+                        isShowing = true;
+                        if (isLoading && isShowing && !downLoadingDialog.isShowing()) {
+                            downLoadingDialog.show();
+                        }
+                    }
+
+                    @Override
+                    public void onError(String msg) {
+                        toastUntil.ShowToastShort(msg);
+                    }
+                });
                 operableDialog.dismiss();
             }
 
@@ -328,17 +328,43 @@ public class AttendanceRecordActivity extends BaseActivity {
 
     @OnClick(R.id.atten_record_clear)
     public void onClearClick() {
-        sqlControl.deletUser(new SqlCallBack<String>() {
+        String message = "将清除所有图片缓存和一个月前为处理的考勤记录，是否继续？";
+        final OperableDialog operableDialog = new OperableDialog(this, R.style.NormalDialogStyle, 60, "操作验证", message,
+                "确定", "取消", new timeOutListner() {
             @Override
-            public void onRespose(String msg) {
-                toastUntil.ShowToastShort("清除用户信息成功");
+            public void onTimeOut(String msg) {
+                toastUntil.ShowToastShort(msg);
+
+            }
+        });
+        operableDialog.show();
+        operableDialog.setClickListenerInterface(new OperableDialog.clickListenerInterface() {
+            @Override
+            public void onEnsure() {
+                loadingDialog.show();
+                Glideclear.getINSTANCE().clearImageAllCache(App.getContext());
+                SQLControl.getINSTANCE().clearAttends(AttendanceRecordActivity.this, new SqlCallBack<String>() {
+                    @Override
+                    public void onRespose(String s) {
+                        toastUntil.ShowToastShort("考勤记录清除成功");
+                        loadingDialog.dismiss();
+                    }
+
+                    @Override
+                    public void onError(String msg) {
+                        toastUntil.ShowToastShort(msg);
+                        loadingDialog.dismiss();
+                    }
+                });
+                operableDialog.dismiss();
             }
 
             @Override
-            public void onError(String msg) {
-                toastUntil.ShowToastShort(msg);
+            public void onCancel() {
+                operableDialog.dismiss();
             }
         });
+
     }
 
 
@@ -364,35 +390,46 @@ public class AttendanceRecordActivity extends BaseActivity {
             String mode = intent.getStringExtra("mode");
             Log.d(TAG, "onReceive: " + progress + "::::" + mode);
             if (mode.equals("down")) {
-                attenRecordDown.setText("查看下载进度");
+                if (progress.equals("false")) {
+                    Log.d(TAG, "onReceive: updata error====================>");
+                    isLoading = false;
+                    return;
+                }
+                attenRecordDown.setText("查看进度");
                 isLoading = true;
-                if (isLoading && isShowing) {
+                if (isLoading && isShowing && !downLoadingDialog.isShowing()) {
                     downLoadingDialog.show();
                 }
-                if (downLoadingDialog.isShowing() && isLoading) {
+                if (downLoadingDialog.isShowing()) {
                     downLoadingDialog.setCurrentPosition(Integer.parseInt(progress));
                 }
                 if (progress.equals("100")) {
                     Log.d(TAG, "onReceive: 下载完成");
-                    downLoadingDialog.dismiss();
+//                    downLoadingDialog.dismiss();
                     isLoading = false;
                     isShowing = false;
-                    attenRecordDown.setText("更新用户档案");
+                    toastUntil.ShowToastShort("下载完成");
+                    attenRecordDown.setText("更新档案");
                 }
             } else if (mode.equals("updata")) {
-                attenRecorUp.setText("查看更新进度");
+                if (progress.equals("false")) {
+                    Log.d(TAG, "onReceive: updata error====================>");
+                    isLoading1 = false;
+                    return;
+                }
+                attenRecorUp.setText("查看进度");
                 isLoading1 = true;
                 if (isLoading1 && isShowing1) {
                     downLoadingDialog.show();
                 }
-                if (downLoadingDialog.isShowing() && isLoading1) {
+                if (downLoadingDialog.isShowing()) {
                     downLoadingDialog.setCurrentPosition(Integer.parseInt(progress));
                 }
                 if (progress.equals("100")) {
-                    downLoadingDialog.dismiss();
                     isLoading1 = false;
                     isShowing1 = false;
-                    attenRecorUp.setText("上传考勤记录");
+                    attenRecorUp.setText("上传记录");
+                    toastUntil.ShowToastShort("上传完成");
                 }
             }
         }

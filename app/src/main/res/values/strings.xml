@@ -1,4 +1,4 @@
 <resources>
     <string name="app_name">"移动考勤系统"</string>
-    <string name="title_activity_attendance">AttendanceActivity</string>
+    <!--<string name="title_activity_attendance">AttendanceActivity</string>-->
 </resources>

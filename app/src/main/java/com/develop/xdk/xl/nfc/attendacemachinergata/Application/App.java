@@ -4,6 +4,8 @@ import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
 
+import com.develop.xdk.xl.nfc.attendacemachinergata.SqLite.SQLControl;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -61,5 +63,6 @@ public class App extends Application {
         }
         android.os.Process.killProcess(android.os.Process.myPid());
         System.exit(0);
+        SQLControl.getINSTANCE().closeDB(this);
     }
 }

@@ -2,7 +2,10 @@ package com.develop.xdk.xl.nfc.attendacemachinergata.Activity;
 
 import android.content.Intent;
 import android.graphics.Color;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Handler;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -16,17 +19,21 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.develop.xdk.xl.nfc.attendacemachinergata.Base.BaseActivity;
 import com.develop.xdk.xl.nfc.attendacemachinergata.MainActivity;
 import com.develop.xdk.xl.nfc.attendacemachinergata.R;
+import com.develop.xdk.xl.nfc.attendacemachinergata.SqLite.SQLControl;
 import com.develop.xdk.xl.nfc.attendacemachinergata.SqLite.SqlCallBack;
 import com.develop.xdk.xl.nfc.attendacemachinergata.constant.C;
 import com.develop.xdk.xl.nfc.attendacemachinergata.entity.BaseAttendRecord;
 import com.develop.xdk.xl.nfc.attendacemachinergata.entity.Dialog.Loading.MyLoading;
 import com.develop.xdk.xl.nfc.attendacemachinergata.entity.Dialog.Loading.timeOutListner;
 import com.develop.xdk.xl.nfc.attendacemachinergata.entity.Dialog.LoadingDialog;
+import com.develop.xdk.xl.nfc.attendacemachinergata.entity.Image_byte.GlideApp;
 import com.develop.xdk.xl.nfc.attendacemachinergata.entity.MyList.ListAdapter;
 import com.develop.xdk.xl.nfc.attendacemachinergata.entity.MyList.MyListView;
+import com.develop.xdk.xl.nfc.attendacemachinergata.entity.ReSizeDrawable.ReSizeDrawable;
 import com.develop.xdk.xl.nfc.attendacemachinergata.entity.getScreenSize.ScreenSizeUtils;
 
 import java.util.ArrayList;
@@ -48,7 +55,6 @@ public class AttendsListActivity extends BaseActivity implements MyListView.MyLo
     private ListAdapter adapter;
     private LoadingDialog dialog = null;
     private int startIndex;
-    private int endIndex;
     private int numb = 10;//每页加载数
     private int totalNumb;//总数
 
@@ -60,6 +66,7 @@ public class AttendsListActivity extends BaseActivity implements MyListView.MyLo
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         init();
+
     }
 
     private void init() {
@@ -72,23 +79,23 @@ public class AttendsListActivity extends BaseActivity implements MyListView.MyLo
                 toastUntil.ShowToastShort(msg);
             }
         });
-        Intent intent = getIntent();
-        totalNumb = intent.getIntExtra("totalNum", 0);
+        Intent intent = this.getIntent();
+        totalNumb = intent.getIntExtra("totalNumb", 0);
+        Log.e(TAG, "init: " + totalNumb);
 
         attendsListMylist.intShow(this);
-        endIndex = startIndex + numb;
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-        sqlControl.selectAttendanc(startIndex, endIndex, new SqlCallBack<List<BaseAttendRecord>>() {
+        SQLControl.getINSTANCE().selectAttendanc(AttendsListActivity.this,startIndex, numb, new SqlCallBack<List<BaseAttendRecord>>() {
             @Override
             public void onRespose(List<BaseAttendRecord> records) {
+//                Log.e(TAG, "onRespose: " + records.size());
                 data.addAll(records);
                 datas.addAll(data);
                 startIndex += numb;
-                endIndex += numb;
                 showListview(datas);
             }
 
@@ -98,6 +105,7 @@ public class AttendsListActivity extends BaseActivity implements MyListView.MyLo
                 attendsListMylist.isend();
             }
         });
+        Log.d(TAG, "onStart: ======================>");
     }
 
     /**
@@ -165,13 +173,19 @@ public class AttendsListActivity extends BaseActivity implements MyListView.MyLo
      * 获取每次加载的数据
      */
     private void getLoadData() {
-        sqlControl.selectAttendanc(startIndex, endIndex, new SqlCallBack<List<BaseAttendRecord>>() {
+        SQLControl.getINSTANCE().selectAttendanc(AttendsListActivity.this,startIndex, numb, new SqlCallBack<List<BaseAttendRecord>>() {
             @Override
             public void onRespose(List<BaseAttendRecord> records) {
+                Log.e(TAG, "onRespose: " + records.size());
+                data.clear();//每次加载前先清空临时储存单位
                 data.addAll(records);
                 startIndex += numb;
-                endIndex += numb;
                 datas.addAll(data);
+                Log.e(TAG, "getLoadData onRespose: " + datas.size());
+                if (records == null || records.size() == 0) {
+                    toastUntil.ShowToastShort("已加载全部数据");
+                    attendsListMylist.isend();
+                }
                 if (datas.size() == totalNumb) {
                     toastUntil.ShowToastShort("已加载全部数据");
                     attendsListMylist.isend();
@@ -213,7 +227,7 @@ public class AttendsListActivity extends BaseActivity implements MyListView.MyLo
         TextView tv_attendMode = view.findViewById(R.id.my_list_dialog_attendMode);
         TextView tv_inORout = view.findViewById(R.id.my_list_dialog_inORout);
         TextView tv_attendDate = view.findViewById(R.id.my_list_dialog_attendDate);
-        ImageView ima_head = view.findViewById(R.id.my_list_dialog_ima);
+        final ImageView ima_head = view.findViewById(R.id.my_list_dialog_ima);
 
         loading.setContentView(view);
         loading.setCanceledOnTouchOutside(false);
@@ -227,10 +241,41 @@ public class AttendsListActivity extends BaseActivity implements MyListView.MyLo
 
         try {
             BaseAttendRecord record = datas.get(position);
+            SQLControl.getINSTANCE().selectHeadImage(this,record.getA_cardID(), new SqlCallBack<byte[]>() {
+                @Override
+                public void onRespose(byte[] bytes) {
+                    Drawable drawable = ContextCompat.getDrawable(AttendsListActivity.this, R.drawable.img_error);
+                    Drawable drawable1 = ContextCompat.getDrawable(AttendsListActivity.this, R.drawable.img_loading);
+                    drawable = ReSizeDrawable.reSize(AttendsListActivity.this, (BitmapDrawable) drawable);
+                    drawable1 = ReSizeDrawable.reSize(AttendsListActivity.this, (BitmapDrawable) drawable1);
+                    GlideApp.with(AttendsListActivity.this)
+                            .load(bytes)
+                            .placeholder(drawable1)
+                            .error(drawable)
+                            .diskCacheStrategy(DiskCacheStrategy.ALL)
+                            .into(ima_head);
+                }
+
+                @Override
+                public void onError(String msg) {
+                    Log.e(TAG, "showMyListDialog-->onError: "+msg);
+                    byte[] bytes = null;
+                    Drawable drawable = ContextCompat.getDrawable(AttendsListActivity.this, R.drawable.img_error);
+                    Drawable drawable1 = ContextCompat.getDrawable(AttendsListActivity.this, R.drawable.img_loading);
+                    drawable = ReSizeDrawable.reSize(AttendsListActivity.this, (BitmapDrawable) drawable);
+                    drawable1 = ReSizeDrawable.reSize(AttendsListActivity.this, (BitmapDrawable) drawable1);
+                    GlideApp.with(AttendsListActivity.this)
+                            .load(bytes)
+                            .placeholder(drawable1)
+                            .error(drawable)
+                            .diskCacheStrategy(DiskCacheStrategy.ALL)
+                            .into(ima_head);
+                }
+            });
             tv_numb.setText(position + 1 + "");
             tv_name.setText(record.getA_name());
             tv_class.setText(record.getA_class());
-            tv_status.setText("");
+            tv_status.setText(record.getStatus());
             if (record.getA_isHandle() == C.IS_HANDLE) {
                 tv_isHandle.setText("是");
                 tv_isHandle.setTextColor(Color.GREEN);

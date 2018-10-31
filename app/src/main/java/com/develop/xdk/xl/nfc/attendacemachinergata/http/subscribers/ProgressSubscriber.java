@@ -90,14 +90,17 @@ public class ProgressSubscriber<T> extends Subscriber<T> implements ProgressCanc
             message = e.getMessage();
 //            toastUntil.ShowToastShort(e.getMessage());
         }
-        if (context.getClass().getSimpleName().equals("AttendanceInActivity")) {
-            AttendanceInActivity activity = (AttendanceInActivity) context;
-            Message msg = new Message();
-            msg.what = 100;
-            msg.obj = message;
-            activity.mainHandler.sendMessage(msg);
-        } else {
-            toastUntil.ShowToastShort(message);
+//        if (context.getClass().getSimpleName().equals("AttendanceInActivity")) {
+//            AttendanceInActivity activity = (AttendanceInActivity) context;
+//            Message msg = new Message();
+//            msg.what = 100;
+//            msg.obj = message;
+//            activity.mainHandler.sendMessage(msg);
+//        } else {
+//            toastUntil.ShowToastShort(message);
+//        }
+        if (mSubscriberOnNextListener != null) {
+            mSubscriberOnNextListener.onError(message);
         }
         dismissProgressDialog();
 

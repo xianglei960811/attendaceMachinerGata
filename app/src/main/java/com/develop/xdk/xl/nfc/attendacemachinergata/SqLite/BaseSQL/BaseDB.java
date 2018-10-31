@@ -3,6 +3,10 @@ package com.develop.xdk.xl.nfc.attendacemachinergata.SqLite.BaseSQL;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 
+import com.develop.xdk.xl.nfc.attendacemachinergata.R;
+import com.develop.xdk.xl.nfc.attendacemachinergata.constant.C;
+import com.develop.xdk.xl.nfc.attendacemachinergata.entity.Dialog.Loading.timeOutListner;
+import com.develop.xdk.xl.nfc.attendacemachinergata.entity.Dialog.LoadingDialog;
 import com.develop.xdk.xl.nfc.attendacemachinergata.utils.ToastUntil;
 
 import java.util.concurrent.atomic.AtomicInteger;

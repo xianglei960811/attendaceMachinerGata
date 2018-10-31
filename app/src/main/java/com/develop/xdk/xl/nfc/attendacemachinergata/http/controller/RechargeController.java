@@ -5,6 +5,7 @@ import android.util.Log;
 
 import com.develop.xdk.xl.nfc.attendacemachinergata.MyService.myService;
 import com.develop.xdk.xl.nfc.attendacemachinergata.constant.C;
+import com.develop.xdk.xl.nfc.attendacemachinergata.entity.AccountidParam;
 import com.develop.xdk.xl.nfc.attendacemachinergata.entity.BaseParam;
 import com.develop.xdk.xl.nfc.attendacemachinergata.entity.CheckRecodParam;
 import com.develop.xdk.xl.nfc.attendacemachinergata.entity.ComsumeParam;
@@ -45,8 +46,6 @@ public class RechargeController {
     }
 
 
-
-
     //在访问HttpMethods时创建单例
     private static class SingletonHolder {
         private static final RechargeController INSTANCE = new RechargeController();
@@ -65,7 +64,7 @@ public class RechargeController {
      * @param context
      * @param cardid
      */
-    public void getUserinfo(SubscriberOnNextListener onNextListener, Context context, String cardid) throws ApiException{
+    public void getUserinfo(SubscriberOnNextListener onNextListener, Context context, String cardid) throws ApiException {
         ProgressSubscriber subscriber = new ProgressSubscriber(onNextListener, context);
         BaseParam param = new BaseParam();
         param.setCardid(cardid);
@@ -81,10 +80,11 @@ public class RechargeController {
 
     /**
      * 接收人员档案
+     *
      * @param onNextListener
      * @param context
      */
-    public void recepDossier(SubscriberOnNextListener onNextListener,Context context) {
+    public void recepDossier(SubscriberOnNextListener onNextListener, Context context) {
         ProgressSubscriber subscriber = new ProgressSubscriber(onNextListener, context);
         ComsumeParam param = new ComsumeParam();
         param.setComputer((String) SharedPreferencesUtils.getParam(context, C.COMPUTER_NAME, C.COMPUTER));
@@ -95,39 +95,62 @@ public class RechargeController {
         param.setSign(SignUtil.createSign(map, C.SIGN_KEY));
         Observable observable = NfcService.recepDossior(param).map(new HttpResultFunc<List<PersonDossier>>());
         toSubscribe(observable, subscriber);
-        Log.d("recepDossier","------------>"+ new Gson().toJson(param));
+        Log.d("recepDossier", "------------>" + new Gson().toJson(param));
     }
 
     /**
      * 上传考勤记录
-     * @param a_cardID 卡号
-     * @param a_attendMode 考勤模式
-     * @param a_inOrOutMode 进出放心
+     *
+     * @param a_cardID                 卡号
+     * @param a_attendMode             考勤模式
+     * @param a_inOrOutMode            进出放心
      * @param at_data
      * @param subscriberOnNextListener 回调接口
      * @param context
      */
-    public void updataAttends(String a_cardID, int a_attendMode, int a_inOrOutMode,String at_data, SubscriberOnNextListener subscriberOnNextListener, Context context) {
-        ProgressSubscriber subscriber = new ProgressSubscriber(subscriberOnNextListener,context);
+    public void updataAttends(String a_cardID, int a_attendMode, int a_inOrOutMode, String at_data, SubscriberOnNextListener subscriberOnNextListener, Context context) {
+        ProgressSubscriber subscriber = new ProgressSubscriber(subscriberOnNextListener, context);
         String[] data = at_data.split("\\ ");
         String riqi = data[0];
         String time = data[1];
         CheckRecodParam param = new CheckRecodParam();
-        param.setCheckmac((String) SharedPreferencesUtils.getParam(context,C.CHECK_MAC_NAME,C.CHECK_MAC));
+        param.setCheckmac((String) SharedPreferencesUtils.getParam(context, C.CHECK_MAC_NAME, C.CHECK_MAC));
         param.setChecktype(String.valueOf(a_attendMode));
         param.setDate(riqi);
         param.setTime(time);
         param.setMactype(String.valueOf(C.MAC_TYPR));
         param.setStyle(String.valueOf(a_inOrOutMode));
         param.setCardid(a_cardID);
-        param.setClientid((String) SharedPreferencesUtils.getParam(context,C.CLIENTID_NAME,C.CLIENTID));
+        param.setClientid((String) SharedPreferencesUtils.getParam(context, C.CLIENTID_NAME, C.CLIENTID));
         param.setTimestamp(String.valueOf(System.currentTimeMillis()));
         SortedMap map = BeanUtil.ClassToMap(param);
-        param.setSign(SignUtil.createSign(map,C.SIGN_KEY));
+        param.setSign(SignUtil.createSign(map, C.SIGN_KEY));
         Observable observable = NfcService.updataAttends(param).map(new HttpResultFunc<PersonDossier>());
-        toSubscribe(observable,subscriber);
-        Log.d("updataAttends","------------>"+ new Gson().toJson(param));
+        toSubscribe(observable, subscriber);
+        Log.d("updataAttends", "------------>" + new Gson().toJson(param));
     }
+
+    /**
+     * 获取用户头像
+     *
+     * @param accountId
+     * @param subscriberOnNextListener
+     * @param context
+     */
+    public void getHeadImage(String accountId, SubscriberOnNextListener subscriberOnNextListener, Context context) {
+        ProgressSubscriber subscriber = new ProgressSubscriber(subscriberOnNextListener, context);
+        AccountidParam param = new AccountidParam();
+        param.setAccountid(accountId);
+        param.setClientid((String) SharedPreferencesUtils.getParam(context, C.CLIENTID_NAME, C.CLIENTID));
+        param.setTimestamp(String.valueOf(System.currentTimeMillis()));
+        SortedMap map = BeanUtil.ClassToMap(param);
+        param.setSign(SignUtil.createSign(map, C.SIGN_KEY));
+        Observable observable = NfcService.getHeadImage(param).map(new HttpResultFunc<String>());
+        toSubscribe(observable, subscriber);
+        Log.d("getHeadImage", "--------------------->: " + new Gson().toJson(param));
+
+    }
+
     private <T> void toSubscribe(Observable<T> o, Subscriber<T> s) {
         o.subscribeOn(Schedulers.io())
                 .unsubscribeOn(Schedulers.io())

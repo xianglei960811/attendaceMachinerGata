@@ -1,34 +1,42 @@
 package com.develop.xdk.xl.nfc.attendacemachinergata.Activity;
 
-import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Message;
+import android.support.annotation.Nullable;
 import android.support.v4.content.ContextCompat;
+import android.util.Base64;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.bumptech.glide.load.DataSource;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.load.engine.GlideException;
+import com.bumptech.glide.request.RequestListener;
+import com.bumptech.glide.request.target.Target;
 import com.develop.xdk.xl.nfc.attendacemachinergata.Base.BaseActivity;
 import com.develop.xdk.xl.nfc.attendacemachinergata.MainActivity;
 import com.develop.xdk.xl.nfc.attendacemachinergata.R;
+import com.develop.xdk.xl.nfc.attendacemachinergata.SqLite.SQLControl;
 import com.develop.xdk.xl.nfc.attendacemachinergata.SqLite.SqlCallBack;
 import com.develop.xdk.xl.nfc.attendacemachinergata.constant.C;
 import com.develop.xdk.xl.nfc.attendacemachinergata.entity.BaseAttendRecord;
 import com.develop.xdk.xl.nfc.attendacemachinergata.entity.CheckInterner.NetWorkUntil;
 import com.develop.xdk.xl.nfc.attendacemachinergata.entity.GetTime.GetNETtime;
+import com.develop.xdk.xl.nfc.attendacemachinergata.entity.Image_byte.GlideApp;
 import com.develop.xdk.xl.nfc.attendacemachinergata.entity.Image_byte.Img_byte;
 import com.develop.xdk.xl.nfc.attendacemachinergata.entity.LocalBaseUser;
 import com.develop.xdk.xl.nfc.attendacemachinergata.entity.PersonDossier;
 import com.develop.xdk.xl.nfc.attendacemachinergata.entity.ReSizeDrawable.ReSizeDrawable;
 import com.develop.xdk.xl.nfc.attendacemachinergata.entity.ReversalString.ReversalString;
+import com.develop.xdk.xl.nfc.attendacemachinergata.entity.getScreenSize.ScreenSizeUtils;
 import com.develop.xdk.xl.nfc.attendacemachinergata.http.controller.RechargeController;
 import com.develop.xdk.xl.nfc.attendacemachinergata.http.subscribers.SubscriberOnNextListener;
+
 
 import butterknife.BindView;
 import butterknife.OnClick;
@@ -65,20 +73,20 @@ public class AttendanceInActivity extends BaseActivity {
     private volatile LocalBaseUser student_ = null;
     private volatile Boolean isImageChange = false;
 
-    @SuppressLint("HandlerLeak")
-    public Handler mainHandler = new Handler() {
-        @Override
-        public void handleMessage(Message msg) {
-            super.handleMessage(msg);
-            if (msg.what == 100) {
-                if (msg.obj != null) {
-                    attenGatahide.setText(msg.obj.toString());
-                } else {
-                    attenGatahide.setText("提醒：获取学生信息失败，请稍后重试");
-                }
-            }
-        }
-    };
+//    @SuppressLint("HandlerLeak")
+//    public Handler mainHandler = new Handler() {
+//        @Override
+//        public void handleMessage(Message msg) {
+//            super.handleMessage(msg);
+//            if (msg.what == 100) {
+//                if (msg.obj != null) {
+//                    attenGatahide.setText(msg.obj.toString());
+//                } else {
+//                    attenGatahide.setText("提醒：获取学生信息失败，请稍后重试");
+//                }
+//            }
+//        }
+//    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -89,27 +97,27 @@ public class AttendanceInActivity extends BaseActivity {
     protected void initView() {
         student_ = new LocalBaseUser();
         clearView();
+        String temp = null;
+        String temp1 = null;
         if (attend_mode == C.SCHOOL_GATA_MODE) {
-            attenGataTitle.append("·" + C.SCHOOL_GATA);
+            temp = C.SCHOOL_GATA;
         } else if (attend_mode == C.DOOR_MODE) {
-            attenGataTitle.append("·" + C.DOOR);
+            temp = C.DOOR;
         } else if (attend_mode == C.LESSON_OR_EXAMINE_MODE) {
-            attenGataTitle.append("·" + C.LESSON_OR_EXAMINE);
+            temp = C.LESSON_OR_EXAMINE;
         } else if (attend_mode == C.TEACHING_STAFF_MODE) {
-            attenGataTitle.append("·" + C.TEACHING_STAFF);
+            temp = C.TEACHING_STAFF;
         }
         if (in_out_mode == C.IN_MODE) {
-            attenGataTitle.append("·" + C.IN_MODE_NAME);
+            temp1 = C.IN_MODE_NAME;
         } else if (in_out_mode == C.OUT_MODE) {
-            attenGataTitle.append("·" + C.OUT_MODE_NAME);
+            temp1 = C.OUT_MODE_NAME;
         }
+        attenGataTitle.append("(" + temp + "：" + temp1 + ")");
         attenGatahide.setText("提示：请将学生卡放入刷卡区刷卡");
     }
 
     private void clearView() {
-        Drawable drawable = ContextCompat.getDrawable(this, R.drawable.default_1);
-        drawable = ReSizeDrawable.reSize(this, (BitmapDrawable) drawable);
-        attenGataPeopleImage.setImageDrawable(drawable);
         isImageChange = false;
         attenGataPeopleName.setText("");
         attenGataPeopleSex.setText("");
@@ -177,35 +185,31 @@ public class AttendanceInActivity extends BaseActivity {
                 @Override
                 public void onNext(final PersonDossier personDossier) {
                     student_.setU_CardID(personDossier.getPdCardid());
-                    student_.setU_Class(String.valueOf(personDossier.getPdClass()));
+                    student_.setU_Class(String.valueOf(personDossier.getPdClass()).trim());
                     student_.setU_Sex(personDossier.getPdSex());
                     student_.setU_Name(personDossier.getPdName());
                     student_.setU_Status(personDossier.getPdStatus());
-                    if (!personDossier.getPdParenttel1().equals("")||personDossier.getPdParenttel1()!=null){
+                    if (!personDossier.getPdParenttel1().equals("") || personDossier.getPdParenttel1() != null) {
                         student_.setU_Phone(personDossier.getPdParenttel1());
-                    }else if (!personDossier.getPdParenttel2().equals("")||personDossier.getPdParenttel2()!=null){
+                    } else if (!personDossier.getPdParenttel2().equals("") || personDossier.getPdParenttel2() != null) {
                         student_.setU_Phone(personDossier.getPdParenttel2());
-                    }else if (!personDossier.getPdParenttel3().equals("")||personDossier.getPdParenttel3()!=null){
+                    } else if (!personDossier.getPdParenttel3().equals("") || personDossier.getPdParenttel3() != null) {
                         student_.setU_Phone(personDossier.getPdParenttel3());
-                    }else {
+                    } else {
                         student_.setU_Phone("");
                     }
-
                     attenGatahide.setText("提示：学生信息获取成功,正在考勤......");
-//                    BitmapDrawable drawable = (BitmapDrawable) Img_byte.byteToDrawable(AttendanceInActivity.this, student_.getU_HeadImage());
-//                    drawable = ReSizeDrawable.reSize(AttendanceInActivity.this, drawable);
-//                    attenGataPeopleImage.setImageDrawable(drawable);
                     isImageChange = true;
                     attenGataPeopleName.setText(student_.getU_Name());
                     attenGataPeopleSex.setText(student_.getU_Sex());
                     attenGataPeopleClass.setText(student_.getU_Class());
                     attenGataPeoplePhone.setText(student_.getU_Phone());
                     attenGataPeopleStatus.setText(student_.getU_Status());
-                    sqlControl.selectStudentInfo(ReversalString.Reversal(nfcCardID), new SqlCallBack() {
+                    SQLControl.getINSTANCE().selectStudentInfo(AttendanceInActivity.this, ReversalString.Reversal(nfcCardID), new SqlCallBack() {
                         @Override
                         public void onRespose(Object obj) {
                             //查询有该用户，则更新数据
-                            sqlControl.updataStudent(personDossier, ReversalString.Reversal(nfcCardID), new SqlCallBack<String>() {
+                            SQLControl.getINSTANCE().updataStudent(AttendanceInActivity.this, personDossier, ReversalString.Reversal(nfcCardID), new SqlCallBack<String>() {
                                 @Override
                                 public void onRespose(String msg) {
                                     Log.e(TAG, "onRespose: ----------------------------------->更新用户数据成功 ");
@@ -221,7 +225,7 @@ public class AttendanceInActivity extends BaseActivity {
                         @Override
                         public void onError(String msg) {
                             if (msg.equals("此用户不存在")) {
-                                sqlControl.insertStudentInfo(student_, new SqlCallBack() {
+                                SQLControl.getINSTANCE().insertStudentInfo(AttendanceInActivity.this, student_, new SqlCallBack() {
                                     @Override
                                     public void onRespose(Object obj) {
                                         Log.e(TAG, "onRespose: ----------------------------->插入信息成功");
@@ -236,11 +240,29 @@ public class AttendanceInActivity extends BaseActivity {
                             Log.e(TAG, "onError: ==========================>查询失败" + msg);
                         }
                     });
+                    RechargeController.getInstance().getHeadImage(personDossier.getPdAccountid(), new SubscriberOnNextListener<String>() {
+                        @Override
+                        public void onNext(String s) {
+                            byte[] bytes = Base64.decode(s, Base64.DEFAULT);
+                            loadIma(bytes, 1);
+                        }
+
+                        @Override
+                        public void onError(String msg) {
+                            loadIma(null, 1);
+                            toastUntil.ShowToastShort(msg);
+                        }
+                    }, AttendanceInActivity.this);
                     insertAttend();
+                }
+
+                @Override
+                public void onError(String msg) {
+                    attenGatahide.setText(msg);
                 }
             }, this, nfcCardID);
         } else {
-            sqlControl.selectStudentInfo(ReversalString.Reversal(nfcCardID), new SqlCallBack<LocalBaseUser>() {
+            SQLControl.getINSTANCE().selectStudentInfo(AttendanceInActivity.this, ReversalString.Reversal(nfcCardID), new SqlCallBack<LocalBaseUser>() {
                 @Override
                 public void onRespose(LocalBaseUser student) {
                     student_ = student;
@@ -251,6 +273,7 @@ public class AttendanceInActivity extends BaseActivity {
                     attenGataPeopleClass.setText(student_.getU_Class());
                     attenGataPeoplePhone.setText(student_.getU_Phone());
                     attenGataPeopleStatus.setText(student_.getU_Status());
+                    loadIma(student_.getU_HeadImage(), 0);
                     insertAttend();
                 }
 
@@ -264,6 +287,8 @@ public class AttendanceInActivity extends BaseActivity {
             return;
         }
     }
+
+
     /**
      * 考勤
      */
@@ -272,7 +297,7 @@ public class AttendanceInActivity extends BaseActivity {
             attenGatahide.setText("提示：未获取学生姓名");
         } else if (attenGataPeopleSex.getText().toString().equals("")) {
             attenGatahide.setText("提示：未获取学生性别");
-        }  else if (attenGataPeopleClass.getText().toString().equals("")) {
+        } else if (attenGataPeopleClass.getText().toString().equals("")) {
             attenGatahide.setText("提示：未获取学生所在班级");
         } else if (attenGataPeopleStatus.getText().toString().equals("")) {
             attenGatahide.setText("提示：未获取身份信息");
@@ -289,7 +314,7 @@ public class AttendanceInActivity extends BaseActivity {
             record.setA_cardID(student_.getU_CardID());
             record.setA_attendMode(attend_mode);
             record.setA_attendDate(GetNETtime.getInsance().getAllData());
-            record.setA_headImage(student_.getU_HeadImage());
+            record.setStatus(student_.getU_Status());
             record.setA_phone(student_.getU_Phone());
             record.setA_isHandle(C.IS_NO_HANDLE);
             record.setA_isStudent(C.IS_STUDENT);
@@ -297,7 +322,7 @@ public class AttendanceInActivity extends BaseActivity {
 //                attenGatahide.setText("提醒：请选择教师考勤模式");
 //                return;
 //            }
-//            if (record.getA_attendMode()==C.TEACHING_STAFF_MODE&&student_.getU_Status().equals("教师"))
+//            if (record.getA_attendMode()==C.TEACHING_STAFF_MO46六月份DE&&student_.getU_Status().equals("教师"))
             if (NetWorkUntil.is_connction(this)) {
                 RechargeController.getInstance().updataAttends(record.getA_cardID(), record.getA_attendMode(), record.getA_inOrOutMode(),
                         record.getA_attendDate(), new SubscriberOnNextListener<PersonDossier>() {
@@ -305,23 +330,90 @@ public class AttendanceInActivity extends BaseActivity {
                             public void onNext(PersonDossier pd) {
                                 attenGatahide.setText("考勤成功");
                             }
-                        },this);
-            } else {
-                sqlControl.insertAttendances(record, new SqlCallBack<String>() {
-                    @Override
-                    public void onRespose(String msg) {
-                        attenGatahide.setText("提示：考勤成功");
+
+                            @Override
+                            public void onError(String msg) {
+                                attenGatahide.setText(msg);
+                            }
+                        }, this);
+                record.setA_isHandle(C.IS_HANDLE);
+
+            }
+            SQLControl.getINSTANCE().insertAttendances(AttendanceInActivity.this, record, new SqlCallBack<String>() {
+                @Override
+                public void onRespose(String msg) {
+                    attenGatahide.setText("提示：考勤成功");
 //                    clearView();
+                }
+
+                @Override
+                public void onError(String msg) {
+                    attenGatahide.setText(msg);
+                }
+            });
+        }
+    }
+
+    /**
+     * 加载图片，并存入数据库
+     *
+     * @param bytes
+     * @param mode  模式
+     */
+    private void loadIma(final byte[] bytes, final int mode) {
+        Log.i(TAG, "loadIma: ---------------->");
+        Drawable drawable = ContextCompat.getDrawable(this, R.drawable.img_error);
+        Drawable drawable1 = ContextCompat.getDrawable(this, R.drawable.img_loading);
+        drawable = ReSizeDrawable.reSize(this, (BitmapDrawable) drawable);
+        drawable1 = ReSizeDrawable.reSize(this, (BitmapDrawable) drawable1);
+
+        GlideApp.with(this)
+                .load(bytes).placeholder(drawable1)
+                .addListener(new RequestListener<Drawable>() {
+                    @Override
+                    public boolean onLoadFailed(@Nullable GlideException e, Object model, Target<Drawable> target, boolean isFirstResource) {
+                        //加载失败
+                        Log.e(TAG, "onLoadFailed: ");
+                        return false;
                     }
 
                     @Override
-                    public void onError(String msg) {
-                        attenGatahide.setText(msg);
+                    public boolean onResourceReady(Drawable resource, Object model, Target<Drawable> target, DataSource dataSource, boolean isFirstResource) {
+                        //加载成功
+                        Log.e(TAG, "onResourceReady: ");
+                        if (mode == 1) {
+                            final LocalBaseUser user = new LocalBaseUser();
+                            user.setU_HeadImage(bytes);
+                            SQLControl.getINSTANCE().selectStudentInfo(AttendanceInActivity.this, student_.getU_CardID(), new SqlCallBack() {
+                                @Override
+                                public void onRespose(Object obj) {
+                                    SQLControl.getINSTANCE().updataHeadImage(AttendanceInActivity.this, user, student_.getU_CardID(), new SqlCallBack() {
+                                        @Override
+                                        public void onRespose(Object obj) {
+                                            Log.d(TAG, "onRespose: =========================>更新用户头像成功");
+                                        }
+
+                                        @Override
+                                        public void onError(String msg) {
+                                            Log.d(TAG, "onError: =============================>更新用户头像失败" + msg);
+                                        }
+                                    });
+                                }
+
+                                @Override
+                                public void onError(String msg) {
+                                    Log.e(TAG, "loadIma->selectStudentInfo->onError: " + msg);
+                                }
+                            });
+                        }
+                        return false;
                     }
-                });
-            }
-        }
+                }).error(drawable)
+                .diskCacheStrategy(DiskCacheStrategy.ALL)
+                .into(attenGataPeopleImage);
+        Log.e(TAG, "loadIma: width" + attenGataPeopleImage.getWidth() + "::" + attenGataPeopleImage.getHeight());
     }
+
     @Override
     protected void onDestroy() {
         super.onDestroy();

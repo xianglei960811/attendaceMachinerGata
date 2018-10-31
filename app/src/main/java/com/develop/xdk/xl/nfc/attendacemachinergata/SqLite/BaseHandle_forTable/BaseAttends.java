@@ -52,11 +52,7 @@ public class BaseAttends extends BaseDB implements TableColumns.ATTENDANCES_COUM
             callBack.onRespose("success");
             Log.d(TAG, "InsertAttendStudent: success------------------>");
         }
-        if (db != null || db.isOpen()) {
-            closeDatabase();
-        }
         cv.clear();
-
     }
 
     /***
@@ -67,23 +63,26 @@ public class BaseAttends extends BaseDB implements TableColumns.ATTENDANCES_COUM
      * @param groupBy 数据分组
      * @param having 分组后的条件
      * @param orderBy 排序方式
-     * @param limit 分页查询 格式："" + startIdex + "," + endIndex + ""
+     * @param limit 分页查询 格式："" + startIdex + "," + number + ""  numb:查询的每页数量
      * @param callBack
      * @return 返回cursor
      */
     public void selectAttends(String selectionID, String[] valus, String groupBy,
-                                    String having, String orderBy, String limit, SqlCallBack callBack) {
+                              String having, String orderBy, String limit, SqlCallBack callBack) {
         Cursor cursor = null;
         List<BaseAttendRecord> lists = new ArrayList<>();
-        String[] users = new String[]{FIELD_CARD_ID, FIELD_NAME, FIELD_HEAD_IMAGE, FIELD_CLASS,
-                FIELD_IN_OUT_MODE, FIELD_ID, FIELD_PHONE, FIELD_ATTENDANCE_MODE, FIFLE_ATTENDANCE_DATE,FIFLE_IS_HANDLE,FIFLE_IS_STUDENT};
+        String[] users = new String[]{FIELD_CARD_ID, FIELD_NAME, FIELD_SATUS, FIELD_CLASS,
+                FIELD_IN_OUT_MODE, FIELD_ID, FIELD_PHONE, FIELD_ATTENDANCE_MODE, FIFLE_ATTENDANCE_DATE, FIFLE_IS_HANDLE, FIFLE_IS_STUDENT};
         if (db == null || !db.isOpen()) {
             db = getWritableDatabase();
         }
         try {
-//            cursor = db.query(TABLE_USERS, users, selectionID + "=?", valus, groupBy, having, orderBy, limit);
-            cursor = db.query(TABLE_USERS,users,selectionID,valus,groupBy,having,orderBy,limit);
-            Log.d(TAG, "selectAttends: ---------------------------->cursor==="+cursor.getCount());
+//            String selectSql = "select * from "+TABLE_USERS+" limit "+20+" offset "+10+" order by "+FIELD_ID+"" ;
+            cursor = db.query(TABLE_USERS, users, selectionID, valus, groupBy, having, orderBy, limit);
+//            cursor = db.rawQuery(selectSql,null);
+            Log.d(TAG, "selectAttends: ============>" + limit);
+//            cursor = db.query(TABLE_USERS,users,selectionID,valus,groupBy,having,orderBy,"10,20");
+            Log.d(TAG, "selectAttends: ---------------------------->cursor===" + cursor.getCount());
             if (cursor == null || cursor.getCount() == 0) {
 //                callBack.onError("无此用户");
                 callBack.onRespose(lists);
@@ -96,7 +95,7 @@ public class BaseAttends extends BaseDB implements TableColumns.ATTENDANCES_COUM
                 user.setA_attendMode(cursor.getInt(cursor.getColumnIndex(FIELD_ATTENDANCE_MODE)));
                 user.setA_cardID(cursor.getString(cursor.getColumnIndex(FIELD_CARD_ID)));
                 user.setA_class(cursor.getString(cursor.getColumnIndex(FIELD_CLASS)));
-                user.setA_headImage(cursor.getBlob(cursor.getColumnIndex(FIELD_HEAD_IMAGE)));
+                user.setStatus(cursor.getString(cursor.getColumnIndex(FIELD_SATUS)));
                 user.setA_id(cursor.getInt(cursor.getColumnIndex(FIELD_ID)));
                 user.setA_inOrOutMode(cursor.getInt(cursor.getColumnIndex(FIELD_IN_OUT_MODE)));
                 user.setA_name(cursor.getString(cursor.getColumnIndex(FIELD_NAME)));
@@ -112,10 +111,7 @@ public class BaseAttends extends BaseDB implements TableColumns.ATTENDANCES_COUM
             Log.e(TAG, "selectAttendStudent: " + e.getMessage());
             return;
         } finally {
-            if (db.isOpen() || db != null) {
-                closeDatabase();
-            }
-            if (cursor != null ) {
+            if (cursor != null) {
                 cursor.close();
             }
         }
@@ -140,9 +136,6 @@ public class BaseAttends extends BaseDB implements TableColumns.ATTENDANCES_COUM
             callBack.onError("更新用户表信息失败，请稍后重试");
             return;
         } finally {
-            if (db != null || !db.isOpen()) {
-                closeDatabase();
-            }
             if (!cv.toString().isEmpty()) {
                 cv.clear();
             }
@@ -152,23 +145,24 @@ public class BaseAttends extends BaseDB implements TableColumns.ATTENDANCES_COUM
     /***
      * 清除表Attend_student的数据
      *
-     * @param whereArgs  删除条件
-     * @param valus    条件中用了占位符的参数
      * @param callBack
      */
-    public void clearAttends(String whereArgs, String[] valus, SqlCallBack callBack) {
+    public void clearAttends(String clearSQl, SqlCallBack callBack) {
         if (db == null || !db.isOpen()) {
             db = getWritableDatabase();
         }
         try {
-            String clearSqlite_sequence = "delete from sqlite_sequence";//将自增归0
-            db.delete(TABLE_USERS, whereArgs, valus);
-            db.execSQL(clearSqlite_sequence);
+            db.execSQL(clearSQl);
             callBack.onRespose("success");
         } catch (Exception e) {
             callBack.onError("清除用户信息失败");
         } finally {
-            if (db != null || !db.isOpen()) {
+        }
+    }
+
+    public void closeDB() {
+        if (db != null) {
+            if (!db.isOpen()) {
                 closeDatabase();
             }
         }

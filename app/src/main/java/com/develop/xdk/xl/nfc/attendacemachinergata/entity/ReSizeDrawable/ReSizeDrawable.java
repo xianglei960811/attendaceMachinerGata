@@ -23,9 +23,10 @@ public class ReSizeDrawable {
         int bitmapWidth = bitmap.getWidth();
         int bitmapHeight = bitmap.getHeight();
 
-        float num = ((float) mScreenWidth / 3) / (float)bitmapWidth;
+        float num = ((float) 105) / (float)bitmapWidth;
+        float num1 = ((float)180)/(float) bitmapHeight;
         if (num > 1) {//屏幕的1/2比图片大，图片进行放大
-            float numb = ((float) bitmapWidth / (float) (mScreenWidth / 3)) + 1.0f;
+            float numb = ((float) bitmapWidth /  ((float) 105)) + 1.0f;
             Matrix matrix = new Matrix();
             matrix.postScale(numb, numb);
             Log.d("ReSize", "reSize:is big--------------------> ");
@@ -34,7 +35,7 @@ public class ReSizeDrawable {
             return reSizeDrawble;
         } else if (num < 1) {//图片比屏幕的1/2大，图片进行缩写
             Matrix matrix = new Matrix();
-            matrix.postScale(num, num);
+            matrix.postScale(num, num1);
             Log.d("ReSize", "reSize:is small--------------------> ");
 //            Log.e("sss", "reSize: "+mScreenWidth+":"+bitmapWidth+":"+bitmapHeight+":"+matrix.toString() );
             Bitmap reSizeBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmapWidth, bitmapHeight, matrix, true);

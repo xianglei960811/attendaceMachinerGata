@@ -75,7 +75,7 @@ public class ListAdapter extends BaseAdapter {
 
             holder.itemDate.setText(user.getA_attendDate());
         } catch (Exception e) {
-            Log.d("adapter", "getView: is erro ");
+            Log.e("adapter", "getView: is erro ");
             return convertView;
         }
         return convertView;

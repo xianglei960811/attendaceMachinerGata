@@ -8,6 +8,7 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.util.Log;
 
+import com.develop.xdk.xl.nfc.attendacemachinergata.SqLite.BaseSQL.TableColumns;
 import com.develop.xdk.xl.nfc.attendacemachinergata.SqLite.SQLControl;
 import com.develop.xdk.xl.nfc.attendacemachinergata.SqLite.SqlCallBack;
 import com.develop.xdk.xl.nfc.attendacemachinergata.constant.C;
@@ -29,17 +30,14 @@ import java.util.List;
 public class myService extends Service {
     private final String TAG = getClass().getSimpleName();
     private IBinder binder = new MyBinder();
-    private SQLControl sqlControl;
     private ToastUntil toastUntil;
 
     private Intent progressIntent;
-    private Boolean old_Online = false;
-    private Boolean now_online = false;
+    private volatile Boolean isError = false;
 
     @Override
     public void onCreate() {
         super.onCreate();
-        sqlControl = new SQLControl(this);
         toastUntil = new ToastUntil(this);
         progressIntent = new Intent("com.develop.xdk.xl.nfc.attendacemachinergata.communication.RECEIVER");
 
@@ -91,75 +89,88 @@ public class myService extends Service {
             @Override
             public void onNext(final List<PersonDossier> dossiers) {
                 final int max_progress = dossiers.size();
-                final Runnable runnable = new Runnable() {
-                    @Override
-                    public void run() {
-                        for (int i = 0; i < max_progress; i++) {
-                            final String progress = getPercent(i + 1, max_progress);
-                            PersonDossier pd = dossiers.get(i);
-                                final LocalBaseUser student = new LocalBaseUser();
-                                student.setU_Name(pd.getPdName());
-                                student.setU_Sex(pd.getPdSex());
-                                student.setU_Status(pd.getPdStatus());
-                                student.setU_Class(pd.getPdClass().toString());
-                                student.setU_CardID(pd.getPdCardid());
-                                student.setU_Phone(pd.getPdTelephone());
-                                sqlControl.insertStudentInfo(student, new SqlCallBack<String>() {
-                                    @Override
-                                    public void onRespose(String msg) {
-                                        Log.d(TAG, "onRespose:============>> " + progress);
-                                        progressIntent.putExtra("progress", progress);
-                                        sendBroadcast(progressIntent);//发送广播，并将信息传递给ui界面
-                                    }
-
-                                    @Override
-                                    public void onError(String msg) {
-                                        toastUntil.ShowToastShort("学生：" + student.getU_Name() + " 信息下载失败，请稍后重试");
-                                        Log.e(TAG, "onError: student" + msg);
-                                    }
-                                });
-                            if (progress.equals(100)) {
-                                toastUntil.ShowToastShort("档案更新完成");
-                            }
+                for (int i = 0; i < max_progress; i++) {
+                    final String progress = getPercent(i + 1, max_progress);
+                    PersonDossier pd = dossiers.get(i);
+                    final LocalBaseUser student = new LocalBaseUser();
+                    student.setU_CardID(pd.getPdCardid());
+                    student.setU_Class(String.valueOf(pd.getPdClass()));
+                    student.setU_Sex(pd.getPdSex());
+                    student.setU_Name(pd.getPdName());
+                    student.setU_Status(pd.getPdStatus());
+                    if (pd.getPdParenttel1() != null) {
+                        student.setU_Phone(pd.getPdParenttel1());
+                    } else if (pd.getPdParenttel2() != null) {
+                        student.setU_Phone(pd.getPdParenttel2());
+                    } else if (pd.getPdParenttel3() != null) {
+                        student.setU_Phone(pd.getPdParenttel3());
+                    } else {
+                        student.setU_Phone("");
+                    }
+                    SQLControl.getINSTANCE().insertStudentInfo(myService.this,student, new SqlCallBack<String>() {
+                        @Override
+                        public void onRespose(String msg) {
+                            Log.d(TAG, "onRespose:============>> " + progress);
+                            progressIntent.putExtra("progress", progress);
+                            progressIntent.putExtra("mode", "down");
+                            sendBroadcast(progressIntent);//发送广播，并将信息传递给ui界面
                         }
-                    }
-                };
-                new Thread() {
-                    @Override
-                    public void run() {
-                        super.run();
-                        Looper.prepare();
-                        new Handler().post(runnable);
-                        Looper.loop();
-                    }
-                }.start();
 
+                        @Override
+                        public void onError(String msg) {
+                            if (!isError) {
+                                toastUntil.ShowToastShort(msg);
+                                progressIntent.putExtra("progress", "false");
+                                progressIntent.putExtra("mode", "updata");
+                                sendBroadcast(progressIntent);
+                                isError = true;
+                            }
+                            toastUntil.ShowToastShort("学生：" + student.getU_Name() + " 信息下载失败，请稍后重试");
+                            Log.e(TAG, "onError: student" + msg);
+                        }
+                    });
+                    if (progress.equals(100)) {
+                        toastUntil.ShowToastShort("档案更新完成");
+                    }
+                }
+
+            }
+
+            @Override
+            public void onError(String msg) {
+                if (!isError) {
+                    toastUntil.ShowToastShort(msg);
+                    progressIntent.putExtra("progress", "false");
+                    progressIntent.putExtra("mode", "updata");
+                    sendBroadcast(progressIntent);
+                    isError = true;
+                }
             }
         }, this);
 
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                int i = 1;
-                while (true) {
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-
-                    progressIntent.putExtra("progress", getPercent(i, 100));
-                    progressIntent.putExtra("mode","down");
-                    Log.d(TAG, "run: ----------------------->" + i);
-                    sendBroadcast(progressIntent);//发送广播，并将信息传递给ui界面
-                    if (i == 100) {
-                        toastUntil.ShowToastShort("档案更新完成");
-                        break;
-                    }
-                    i++;
-                }
-            }
-        }).start();
+//        new Thread(new Runnable() {
+////            @Override
+////            public void run() {
+////                int i = 1;
+////                while (true) {
+////                    try {
+////                        Thread.sleep(1000);
+////                    } catch (InterruptedException e) {
+////                        e.printStackTrace();
+////                    }
+////
+////                    progressIntent.putExtra("progress", getPercent(i, 100));
+////                    progressIntent.putExtra("mode", "down");
+////                    Log.d(TAG, "run: ----------------------->" + i);
+////                    sendBroadcast(progressIntent);//发送广播，并将信息传递给ui界面
+////                    if (i == 100) {
+////                        toastUntil.ShowToastShort("档案更新完成");
+////                        break;
+////                    }
+////                    i++;
+////                }
+////            }
+////        }).start();
     }
 
     /**
@@ -168,63 +179,79 @@ public class myService extends Service {
      * @param attends
      */
     public void updataAteends(final List<BaseAttendRecord> attends) {
-        final int[] progress = {1};
+        final int[] progress = {0};
         final int max = attends.size();
-//        for (final BaseAttendRecord record : attends) {
-//            if (record.getA_isHandle() == C.IS_HANDLE) {
-//                continue;
-//            }
-//
-//            RechargeController.getInstance().updataAttends(record.getA_cardID(), record.getA_attendMode(), record.getA_inOrOutMode(),
-//                    record.getA_attendDate(), new SubscriberOnNextListener<PersonDossier>() {
-//                        @Override
-//                        public void onNext(PersonDossier s) {
-//                            progress[0]++;
-//                            record.setA_isHandle(C.IS_HANDLE);
-//                            sqlControl.updataAttendStudent(record, TableColumns.ATTENDANCES_COUMNS.FIELD_ID, new String[]{String.valueOf(record.getA_id())}, new SqlCallBack() {
-//                                @Override
-//                                public void onRespose(Object obj) {
-//                                    progressIntent.putExtra("progress", getPercent(progress[0], max));
-//                                    progressIntent.putExtra("mode","updata");
-//                                    sendBroadcast(progressIntent);
-//                                    if (getPercent(progress[0],max).equals("100")){
-//                                        toastUntil.ShowToastShort("上传记录完成");
-//                                    }
-//                                }
-//
-//                                @Override
-//                                public void onError(String msg) {
-//                                    Log.e(TAG, "onError: updataAteends------------->"+msg );
-//
-//                                }
-//                            });
-//
-//                        }
-//                    }, this);
-//        }
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                int i = 1;
-                while (true) {
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
+        isError = false;
+        for (final BaseAttendRecord record : attends) {
+            RechargeController.getInstance().updataAttends(record.getA_cardID(), record.getA_attendMode(), record.getA_inOrOutMode(),
+                    record.getA_attendDate(), new SubscriberOnNextListener<PersonDossier>() {
+                        @Override
+                        public void onNext(PersonDossier s) {
+                            progress[0]++;
+                            record.setA_isHandle(C.IS_HANDLE);
+                            SQLControl.getINSTANCE().updataAttendStudent(myService.this,record, TableColumns.ATTENDANCES_COUMNS.FIELD_ID, new String[]{String.valueOf(record.getA_id())}, new SqlCallBack() {
+                                @Override
+                                public void onRespose(Object obj) {
+                                    progressIntent.putExtra("progress", getPercent(progress[0], max));
+                                    progressIntent.putExtra("mode", "updata");
+                                    sendBroadcast(progressIntent);
+                                    if (getPercent(progress[0], max).equals("100")) {
+                                        toastUntil.ShowToastShort("上传记录完成");
+                                    }
+                                }
 
-                    progressIntent.putExtra("progress", getPercent(i, 100));
-                    progressIntent.putExtra("mode","updata");
-                    Log.d(TAG, "run: ----------------------->" + i);
-                    sendBroadcast(progressIntent);//发送广播，并将信息传递给ui界面
-                    if (i == 100) {
-                        toastUntil.ShowToastShort("档案更新完成");
-                        break;
-                    }
-                    i++;
-                }
-            }
-        }).start();
+                                @Override
+                                public void onError(String msg) {
+                                    if (!isError) {
+                                        toastUntil.ShowToastShort(msg);
+                                        progressIntent.putExtra("progress", "false");
+                                        progressIntent.putExtra("mode", "updata");
+                                        sendBroadcast(progressIntent);
+                                        isError = true;
+                                    }
+                                    Log.e(TAG, "onError: updataAteends------------->" + msg);
+                                }
+                            });
+
+                        }
+
+                        @Override
+                        public void onError(String msg) {
+                            if (!isError) {
+                                toastUntil.ShowToastShort(msg);
+                                progressIntent.putExtra("progress", "false");
+                                progressIntent.putExtra("mode", "updata");
+                                sendBroadcast(progressIntent);
+                                isError = true;
+                            }
+                        }
+                    }, this);
+        }
+
+
+//        new Thread(new Runnable() {
+//            @Override
+//            public void run() {
+//                int i = 1;
+//                while (true) {
+//                    try {
+//                        Thread.sleep(1000);
+//                    } catch (InterruptedException e) {
+//                        e.printStackTrace();
+//                    }
+//
+//                    progressIntent.putExtra("progress", getPercent(i, 100));
+//                    progressIntent.putExtra("mode","updata");
+//                    Log.d(TAG, "run: ----------------------->" + i);
+//                    sendBroadcast(progressIntent);//发送广播，并将信息传递给ui界面
+//                    if (i == 100) {
+//                        toastUntil.ShowToastShort("档案更新完成");
+//                        break;
+//                    }
+//                    i++;
+//                }
+//            }
+//        }).start();
     }
 
 

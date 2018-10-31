@@ -5,7 +5,7 @@ public class BaseAttendRecord {
     int A_id;
     String A_cardID;
     String A_name;
-    byte[] A_headImage;
+    String status;
     String A_class;
     String A_phone;
     int A_attendMode;
@@ -54,12 +54,12 @@ public class BaseAttendRecord {
         A_name = a_name;
     }
 
-    public byte[] getA_headImage() {
-        return A_headImage;
+    public String getStatus() {
+        return status;
     }
 
-    public void setA_headImage(byte[] a_headImage) {
-        A_headImage = a_headImage;
+    public void setStatus(String status) {
+        this.status = status;
     }
 
     public String getA_class() {

@@ -74,7 +74,7 @@ public class BaseAttendTeacher extends BaseDB implements TableColumns.ATTENDANCE
                                    String having, String orderBy, String limit, SqlCallBack callBack) {
         Cursor cursor = null;
         List<BaseAttendRecord> lists = new ArrayList<>();
-        String[] users = new String[]{FIELD_CARD_ID, FIELD_NAME, FIELD_HEAD_IMAGE, FIELD_CLASS,
+        String[] users = new String[]{FIELD_CARD_ID, FIELD_NAME, FIELD_SATUS, FIELD_CLASS,
                 FIELD_IN_OUT_MODE, FIELD_ID, FIELD_PHONE, FIELD_ATTENDANCE_MODE, FIFLE_ATTENDANCE_DATE,FIFLE_IS_HANDLE};
         if (db == null || !db.isOpen()) {
             db = getWritableDatabase();
@@ -92,7 +92,7 @@ public class BaseAttendTeacher extends BaseDB implements TableColumns.ATTENDANCE
                 user.setA_attendMode(cursor.getInt(cursor.getColumnIndex(FIELD_ATTENDANCE_MODE)));
                 user.setA_cardID(cursor.getString(cursor.getColumnIndex(FIELD_CARD_ID)));
                 user.setA_class(cursor.getString(cursor.getColumnIndex(FIELD_CLASS)));
-                user.setA_headImage(cursor.getBlob(cursor.getColumnIndex(FIELD_HEAD_IMAGE)));
+                user.setStatus(cursor.getString(cursor.getColumnIndex(FIELD_SATUS)));
                 user.setA_id(cursor.getInt(cursor.getColumnIndex(FIELD_ID)));
                 user.setA_inOrOutMode(cursor.getColumnIndexOrThrow(FIELD_IN_OUT_MODE));
                 user.setA_name(cursor.getString(cursor.getColumnIndex(FIELD_NAME)));

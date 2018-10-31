@@ -34,7 +34,7 @@
                 android:textSize="25sp" />
         </LinearLayout>
 
-        <ScrollView
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_weight="1">
@@ -46,41 +46,42 @@
 
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:orientation="horizontal"
-                    android:layout_height="wrap_content">
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1.4"
+                        android:ellipsize="end"
+                        android:gravity="center_horizontal"
+                        android:maxLines="1"
+                        android:text="No."
+                        android:textColor="#000"
+                        android:textSize="20sp" />
 
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_weight="1.3"
                         android:ellipsize="end"
-                        android:gravity="center_horizontal"
                         android:maxLines="1"
-                        android:text="No."
-                        android:textColor="#000"
-                        android:textSize="18sp" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginLeft="1dp"
-                        android:layout_weight="1.25"
-                        android:ellipsize="end"
-                        android:maxLines="1"
+                        android:paddingLeft="5dp"
                         android:text="姓名"
                         android:textColor="#000"
-                        android:textSize="18sp" />
+                        android:textSize="20sp" />
 
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginLeft="1dp"
-                        android:layout_weight="1.1"
+                        android:layout_weight="1.2"
+                        android:paddingLeft="2dp"
                         android:ellipsize="end"
                         android:maxLines="1"
                         android:text="考勤类型"
                         android:textColor="#000"
-                        android:textSize="18sp" />
+                        android:textSize="20sp" />
 
                     <TextView
                         android:layout_width="match_parent"
@@ -91,18 +92,20 @@
                         android:maxLines="1"
                         android:text="进出方向"
                         android:textColor="#000"
-                        android:textSize="18sp" />
+                        android:textSize="18sp"
+                        android:visibility="gone" />
 
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginLeft="1dp"
                         android:layout_weight="1"
+                        android:paddingLeft="5dp"
                         android:ellipsize="end"
                         android:maxLines="1"
                         android:text="消费日期"
                         android:textColor="#000"
-                        android:textSize="18sp" />
+                        android:textSize="20sp" />
                 </LinearLayout>
 
                 <com.develop.xdk.xl.nfc.attendacemachinergata.entity.MyList.MyListView
@@ -111,7 +114,7 @@
                     android:layout_height="wrap_content" />
             </LinearLayout>
 
-        </ScrollView>
+        </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"

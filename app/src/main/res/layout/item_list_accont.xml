@@ -2,63 +2,77 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layout_marginTop="10dp"
     android:orientation="horizontal">
+
     <TextView
+        android:id="@+id/item_list_numb"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="1"
-        android:layout_weight="1.35"
-        android:textColor="#000"
-        android:gravity="center_horizontal"
-        android:textSize="18sp"
-        android:maxLines="1"
+        android:layout_marginBottom="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_weight="1.4"
         android:ellipsize="end"
-        android:id="@+id/item_list_numb"/>
+        android:gravity="center_horizontal"
+        android:maxLines="1"
+        android:text="No."
+        android:textColor="#000"
+        android:textSize="20sp" />
 
     <TextView
         android:id="@+id/item_list_nume"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginLeft="1dp"
-        android:layout_weight="1.25"
+        android:layout_marginBottom="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_weight="1.3"
         android:ellipsize="end"
         android:maxLines="1"
+        android:paddingLeft="5dp"
         android:text="姓名"
         android:textColor="#000"
-        android:textSize="18sp" />
+        android:textSize="20sp" />
+
     <TextView
+        android:id="@+id/item_list_attends_mode"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1.1"
+        android:layout_marginBottom="8dp"
+        android:layout_marginLeft="1dp"
+        android:layout_marginTop="8dp"
+        android:layout_weight="1.2"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:paddingLeft="2dp"
         android:text="考勤类型"
         android:textColor="#000"
-        android:layout_marginLeft="5dp"
-        android:maxLines="1"
-        android:ellipsize="end"
-        android:textSize="18sp"
-        android:id="@+id/item_list_attends_mode"/>
+        android:textSize="20sp" />
+
     <TextView
+        android:id="@+id/item_list_attends_inORout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginLeft="1dp"
         android:layout_weight="1.1"
+        android:ellipsize="end"
+        android:maxLines="1"
         android:text="进出方向"
         android:textColor="#000"
-        android:layout_marginLeft="1dp"
-        android:maxLines="1"
-        android:ellipsize="end"
         android:textSize="18sp"
-        android:id="@+id/item_list_attends_inORout"/>
+        android:visibility="gone" />
+
     <TextView
-        android:layout_weight="1"
+        android:id="@+id/item_list_date"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:maxLines="1"
+        android:layout_marginBottom="8dp"
+        android:layout_marginLeft="1dp"
+        android:layout_marginTop="8dp"
+        android:layout_weight="1"
         android:ellipsize="end"
+        android:maxLines="1"
+        android:paddingLeft="5dp"
         android:text="消费日期"
         android:textColor="#000"
-        android:layout_marginLeft="1dp"
-        android:textSize="18sp"
-        android:id="@+id/item_list_date"/>
+        android:textSize="20sp" />
 
 </LinearLayout>

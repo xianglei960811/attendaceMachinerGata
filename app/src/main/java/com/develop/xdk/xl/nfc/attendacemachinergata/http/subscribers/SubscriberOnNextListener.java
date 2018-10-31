@@ -5,4 +5,6 @@ package com.develop.xdk.xl.nfc.attendacemachinergata.http.subscribers;
  */
 public interface SubscriberOnNextListener<T> {
     void onNext(T t);
+
+    void onError(String msg);//错误信息接口
 }
